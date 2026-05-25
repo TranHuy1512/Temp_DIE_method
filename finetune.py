@@ -199,6 +199,7 @@ def main():
             # pbar = util.ProgressBar(len(val_loader))
             avg_psnr_all = 0.
             idx = 0
+            val_images = []
 
             for val_data in val_loader:
                 idx += 1
@@ -211,13 +212,7 @@ def main():
                 # en_img = util.tensor2img(visuals['rlt'])  # uint8
                 en_img = visuals['rlt']
                 gt_img = util.tensor2img(visuals['GT'])  # uint8
-
-                ############################
-                # 20221124
-                # save some validation patches
-                util.custom_save_img(opt['path']['val_images'], en_img, epoch, 'restore', idx)
-                util.custom_save_img(opt['path']['val_images'], gt_img, epoch, 'gt', idx)
-                ############################
+                val_images.append((idx, en_img, gt_img))
 
                 # Save SR images for reference
                 # if current_step % opt['logger']['save_checkpoint_freq'] == 0:
@@ -256,6 +251,9 @@ def main():
                     best_step_avg = current_step
                     logger.info('Saving best average models!!!!!!!The best psnr is:{:4e}'.format(best_psnr_avg))
                     model.save_best('avg')
+                    for image_idx, en_img, gt_img in val_images:
+                        util.custom_save_img(opt['path']['val_images'], en_img, epoch, 'restore', image_idx)
+                        util.custom_save_img(opt['path']['val_images'], gt_img, epoch, 'gt', image_idx)
                     #
                     # model.save_M('avg')
                     # logger.info('Saving Important parameters!!!!!!')
