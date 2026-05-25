@@ -1,0 +1,77 @@
+#### general settings
+name: finetune_local
+use_tb_logger: true
+model: sr
+distortion: sr
+scale: 1
+# Use [0] on a CUDA machine. Keep [] for this Mac/CPU environment.
+gpu_ids: []
+
+#### datasets
+datasets:
+  train:
+    name: DocNLCTrain
+    mode: UEN_train
+    filelist: ./filelists/train.txt
+    use_shuffle: true
+    n_workers: 0
+    batch_size: 1
+    IN_size: 256
+    augment: true
+
+  val:
+    name: DocNLCVal
+    mode: UEN_test
+    filelist: ./filelists/val.txt
+    batch_size: 1
+    use_shuffle: false
+    IN_size: 256
+
+#### network structures
+network_G:
+  which_model_G: SID
+  nf: 16
+  groups: 8
+
+#### paths
+path:
+  root: ./output
+  results_root: ./output
+  pretrain: ./ckpts
+  pretrain_model_G: ./ckpts/symmetric_47_G.pth
+  strict_load: true
+  resume_state: ~
+
+#### training settings
+train:
+  lr_G: !!float 1e-4
+  weight_decay_G: 0
+  beta1: 0.9
+  beta2: 0.99
+  niter: 60000
+  ewc: false
+  distill: true
+  ewc_coff: 50.0
+  distill_coff: 0.2
+  fix_some_part: ~
+  warmup_iter: -1
+  ComputeImportance: false
+  istraining: true
+  lr_scheme: MultiStepLR
+  lr_steps: [30000, 50000]
+  lr_gamma: 0.5
+  restarts: ~
+  restart_weights: ~
+  clear_state: false
+  eta_min: !!float 5e-6
+  pixel_criterion: l1
+  pixel_weight: 5000.0
+  ssim_weight: 1000.0
+  vgg_weight: 1000.0
+  val_epoch: 1
+  manual_seed: 0
+
+#### logger
+logger:
+  print_freq: 40
+  save_checkpoint_epoch: 1

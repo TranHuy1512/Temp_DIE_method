@@ -240,7 +240,8 @@ class SIEN_Model(BaseModel):
         with torch.no_grad():
             # deg_image = self.var_L# /255.0
             
-            deg_image = np.array(cv2.imread(self.de_path[0],cv2.IMREAD_UNCHANGED))/255
+            deg_image = np.array(cv2.imread(self.de_path[0], cv2.IMREAD_COLOR), dtype=np.float32) / 255.0
+            deg_image = cv2.cvtColor(deg_image, cv2.COLOR_BGR2RGB)
             print('read:',np.max(deg_image), np.min(deg_image))
             h,w,_ = deg_image.shape
             if(h<384):
@@ -271,10 +272,8 @@ class SIEN_Model(BaseModel):
             for l in range(test_image_p.shape[0]):
                 #print("patch shape:",np.transpose(test_image_p[l], [2,0,1]).shape)
                 tmp = np.transpose(test_image_p[l], [2,0,1])
-                tmp = torch.from_numpy(tmp).reshape(1,3,256,256).float()
+                tmp = torch.from_numpy(tmp).reshape(1,3,256,256).float().to(self.device)
                 #print(tmp.shape)
-                self.netG(tmp)
-                
                 # for torch : 1.7.1
                 predict = self.netG(tmp)[0].squeeze().permute((1,2,0)).cpu().numpy()
                 # else :
@@ -289,7 +288,10 @@ class SIEN_Model(BaseModel):
             # if training with threshold
             # predicted_image = (predicted_image[:,:]>0.95)*1
             
-            predicted_image=(predicted_image[:test_image.shape[0],:test_image.shape[1]]*255).round()
+            predicted_image = np.clip(
+                predicted_image[:test_image.shape[0], :test_image.shape[1]] * 255, 0, 255
+            ).round().astype(np.uint8)
+            predicted_image = predicted_image[:, :, [2, 1, 0]]
             print('predicted shape:', predicted_image.shape)
             print(predicted_image)
             
@@ -303,7 +305,8 @@ class SIEN_Model(BaseModel):
         with torch.no_grad():
             # deg_image = self.var_L# /255.0
             
-            deg_image = np.array(cv2.imread(self.de_path[0],cv2.IMREAD_UNCHANGED))/255
+            deg_image = np.array(cv2.imread(self.de_path[0], cv2.IMREAD_COLOR), dtype=np.float32) / 255.0
+            deg_image = cv2.cvtColor(deg_image, cv2.COLOR_BGR2RGB)
             print('read:',np.max(deg_image), np.min(deg_image))
             h,w,_ = deg_image.shape
             if(h<384):
@@ -334,10 +337,8 @@ class SIEN_Model(BaseModel):
             for l in range(test_image_p.shape[0]):
                 #print("patch shape:",np.transpose(test_image_p[l], [2,0,1]).shape)
                 tmp = np.transpose(test_image_p[l], [2,0,1])
-                tmp = torch.from_numpy(tmp).reshape(1,3,256,256).float()
+                tmp = torch.from_numpy(tmp).reshape(1,3,256,256).float().to(self.device)
                 #print(tmp.shape)
-                self.netG(tmp)
-                
                 # for torch : 1.7.1
                 predict = self.netG(tmp)[0].squeeze().permute((1,2,0)).cpu().numpy()
                 # else :
@@ -352,7 +353,10 @@ class SIEN_Model(BaseModel):
             # if training
             predicted_image = (predicted_image[:,:]>0.95)*1
             
-            predicted_image=(predicted_image[:test_image.shape[0],:test_image.shape[1]]*255).round()
+            predicted_image = np.clip(
+                predicted_image[:test_image.shape[0], :test_image.shape[1]] * 255, 0, 255
+            ).round().astype(np.uint8)
+            predicted_image = predicted_image[:, :, [2, 1, 0]]
             print('predicted shape:', predicted_image.shape)
             print(predicted_image)
             
@@ -450,4 +454,3 @@ class SIEN_Model(BaseModel):
 
     def save_best(self,name):
         self.save_network(self.netG, 'best'+name, 0)
-

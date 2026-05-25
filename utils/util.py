@@ -142,10 +142,9 @@ def save_img(img, img_path, mode='RGB'):
 ################
 # 20221124
 def custom_save_img(root_path, img, epoch, mode, idx):
-    target_path = ''.join([root_path,str(epoch),'/'])
-    if(not os.path.exists(target_path)):
-        os.mkdir(target_path)
-    cv2.imwrite(''.join([target_path,str(idx),'_',mode,'.jpg']),img)
+    target_path = os.path.join(root_path, str(epoch))
+    os.makedirs(target_path, exist_ok=True)
+    cv2.imwrite(os.path.join(target_path, '{}_{}.jpg'.format(idx, mode)), img)
 ################
 
 
