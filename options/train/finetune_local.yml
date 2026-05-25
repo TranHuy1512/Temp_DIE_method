@@ -69,6 +69,7 @@ train:
   ssim_weight: 1000.0
   vgg_weight: 1000.0
   val_epoch: 1
+  early_stopping_patience: 5
   manual_seed: 0
 
 #### logger

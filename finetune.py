@@ -130,10 +130,17 @@ def main():
         start_epoch = 0
 
 
-    best_psnr_avg = 0
+    best_psnr_avg = -float('inf')
     best_step_avg = 0
+    best_epoch = None
+    early_stopping_patience = opt['train']['early_stopping_patience']
+    if early_stopping_patience is None:
+        early_stopping_patience = 5
+    stop_training = False
     #### training
     logger.info('Start training from epoch: {:d}, iter: {:d}'.format(start_epoch, current_step))
+    logger.info('Early stopping patience: {:d} epochs without validation PSNR improvement.'.format(
+        early_stopping_patience))
 
     for epoch in range(start_epoch, total_epochs + 2):
     #
@@ -232,11 +239,12 @@ def main():
                     print("Test the {} the image".format(idx))
 
             # log
+            val_psnr = avg_psnr_all / idx
             logger.info('# Epoch : {:d}'.format(epoch))
-            logger.info('# Validation # PSNR: {:.4e}, '.format(avg_psnr_all / idx))
+            logger.info('# Validation # PSNR: {:.4e}, '.format(val_psnr))
             logger.info(
                 '# Validation # Average PSNR: {:.4e} Previous best Average PSNR: {:.4e} Previous best Average step: {}'.
-                format(avg_psnr_all / idx, best_psnr_avg, best_step_avg))
+                format(val_psnr, best_psnr_avg, best_step_avg))
             # tensorboard logger
             # if opt['use_tb_logger'] and 'debug' not in opt['name']:
             #     tb_logger.add_scalar('valid_psnr_low', avg_psnr_low, current_step)
@@ -245,10 +253,11 @@ def main():
             # model.save_M('low')
             # logger.info('Saving Important parameters!!!!!!')
 
-            if avg_psnr_all / idx > best_psnr_avg:
+            if val_psnr > best_psnr_avg:
                 if rank <= 0:
-                    best_psnr_avg = avg_psnr_all / idx
+                    best_psnr_avg = val_psnr
                     best_step_avg = current_step
+                    best_epoch = epoch
                     logger.info('Saving best average models!!!!!!!The best psnr is:{:4e}'.format(best_psnr_avg))
                     model.save_best('avg')
                     for image_idx, en_img, gt_img in val_images:
@@ -257,6 +266,16 @@ def main():
                     #
                     # model.save_M('avg')
                     # logger.info('Saving Important parameters!!!!!!')
+            elif best_epoch is not None:
+                epochs_without_improvement = epoch - best_epoch
+                logger.info(
+                    '# Early stopping # No validation PSNR improvement for {:d}/{:d} epochs.'.
+                    format(epochs_without_improvement, early_stopping_patience))
+                if epochs_without_improvement >= early_stopping_patience:
+                    logger.info(
+                        '# Early stopping # Stop at epoch {:d}; best epoch: {:d}, best PSNR: {:.4e}.'.
+                        format(epoch, best_epoch, best_psnr_avg))
+                    stop_training = True
 
             #### save models and training states
         #if epoch % opt['logger']['save_checkpoint_epoch'] == 0 and epoch >= 40:
@@ -266,6 +285,9 @@ def main():
                 model.save(epoch)
                 # model.save_M(str(epoch))
                 model.save_training_state(epoch, current_step)
+
+        if stop_training:
+            break
 
     if rank <= 0:
         logger.info('Saving the final model.')
